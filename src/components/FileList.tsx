@@ -35,6 +35,11 @@ export default function FileList() {
         setLoading(true);
         setError(null);
 
+        console.log(
+            "Decoded JWT:",
+            JSON.parse(atob(accessToken.split(".")[1]))
+        );
+
         try {
             console.log("Fetching files from:", `${API_BASE_URL}`);
             console.log("Access token length:", accessToken?.length || 0);
@@ -150,10 +155,10 @@ Please check the API configuration and try the test buttons above.`);
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                         Your Files
                     </h2>
-                    <p className="text-gray-600 dark:text-gray-400 mt-1">
+                    {/* <p className="text-gray-600 dark:text-gray-400 mt-1">
                         {user?.["cognito:username"] || user?.username} •{" "}
                         {files.length} file{files.length !== 1 ? "s" : ""}
-                    </p>
+                    </p> */}
                 </div>
                 <button
                     onClick={fetchFiles}

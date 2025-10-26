@@ -9,16 +9,12 @@ import {
 } from "@/lib/auth-utils";
 import { getLogoutUrl } from "@/lib/cognito-config";
 
-interface UserInfo {
-    sub: string;
-    email?: string;
-    email_verified?: boolean;
-    phone_number?: string;
-    phone_number_verified?: boolean;
-    username?: string;
-    preferred_username?: string;
-    "cognito:username"?: string;
-}
+import UserInfo from "@/types/user-info";
+
+/*
+This is the AuthContext providing authentication state and methods across the React application using Context API.
+It handles initialization, sign-out, and exposes user info and loading state.
+*/
 
 interface AuthContextType {
     user: UserInfo | null;
@@ -31,6 +27,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Function that wraps children with AuthContext provider.
+// It manages authentication state, including user info, loading state, errors, and access token.
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<UserInfo | null>(null);
     const [loading, setLoading] = useState(true);

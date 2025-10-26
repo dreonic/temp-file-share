@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cognitoConfig } from "@/lib/cognito-config";
 
 // IMPORTANT: Client secret is now only in the backend
-const COGNITO_CLIENT_SECRET =
-    "1tcqi8g7sn6r5cjlob13487sg9qsmuhkdtd99gbs882hs72ojfou";
+const COGNITO_CLIENT_SECRET = process.env.COGNITO_CLIENT_SECRET || "";
 
 interface TokenResponse {
     access_token: string;

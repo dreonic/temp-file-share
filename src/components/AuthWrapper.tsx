@@ -7,6 +7,8 @@ interface AuthWrapperProps {
     unauthenticated: React.ReactNode;
 }
 
+// Wrapper component to conditionally return authenticated or unauthenticated content
+
 export default function AuthWrapper({
     authenticated,
     unauthenticated,

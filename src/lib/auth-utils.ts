@@ -9,16 +9,7 @@ interface TokenResponse {
     expires_in: number;
 }
 
-interface UserInfo {
-    sub: string;
-    email?: string;
-    email_verified?: boolean;
-    phone_number?: string;
-    phone_number_verified?: boolean;
-    username?: string;
-    preferred_username?: string;
-    "cognito:username"?: string;
-}
+import UserInfo from "@/types/user-info";
 
 // Exchange authorization code for tokens via backend API
 // This keeps the client secret secure on the backend
@@ -87,28 +78,6 @@ export const storeTokens = (tokens: TokenResponse): void => {
     }
 };
 
-// Get stored tokens from cookies
-export const getStoredTokens = () => {
-    return {
-        accessToken: Cookies.get("access_token"),
-        idToken: Cookies.get("id_token"),
-        refreshToken: Cookies.get("refresh_token"),
-    };
-};
-
-// Clear all stored tokens
-export const clearTokens = (): void => {
-    Cookies.remove("access_token");
-    Cookies.remove("id_token");
-    Cookies.remove("refresh_token");
-};
-
-// Check if user is currently authenticated
-export const isAuthenticated = (): boolean => {
-    const tokens = getStoredTokens();
-    return !!tokens.accessToken && !!tokens.idToken;
-};
-
 // Handle the OAuth callback from Cognito
 export const handleAuthCallback = async (): Promise<UserInfo | null> => {
     if (typeof window === "undefined") return null;
@@ -157,4 +126,26 @@ export const handleAuthCallback = async (): Promise<UserInfo | null> => {
         console.error("Error during auth callback:", error);
         throw error;
     }
+};
+
+// Get stored tokens from cookies
+export const getStoredTokens = () => {
+    return {
+        accessToken: Cookies.get("access_token"),
+        idToken: Cookies.get("id_token"),
+        refreshToken: Cookies.get("refresh_token"),
+    };
+};
+
+// Clear all stored tokens
+export const clearTokens = (): void => {
+    Cookies.remove("access_token");
+    Cookies.remove("id_token");
+    Cookies.remove("refresh_token");
+};
+
+// Check if user is currently authenticated
+export const isAuthenticated = (): boolean => {
+    const tokens = getStoredTokens();
+    return !!tokens.accessToken && !!tokens.idToken;
 };
