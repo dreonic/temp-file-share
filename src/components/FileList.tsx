@@ -15,7 +15,6 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { truncateFileName } from "@/lib/formatters";
 
 interface FileItem {
     key: string;
@@ -360,8 +359,8 @@ export default function FileList() {
                                                 </svg>
                                             </div>
                                             <div className="flex flex-col">
-                                                <p className="font-medium" title={file.fileName}>
-                                                    {truncateFileName(file.fileName, 60)}
+                                                <p className="font-medium break-all" title={file.fileName}>
+                                                    {file.fileName}
                                                 </p>
                                             </div>
                                         </div>

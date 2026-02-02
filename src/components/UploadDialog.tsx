@@ -2,7 +2,6 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useCallback } from "react";
-import { truncateFileName } from "@/lib/formatters";
 
 interface UploadDialogProps {
     isOpen: boolean;
@@ -277,9 +276,9 @@ export default function UploadDialog({
                     {/* Selected File Info */}
                     {selectedFile && (
                         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                            <p className="text-sm text-gray-700 dark:text-gray-300" title={selectedFile.name}>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 break-all" title={selectedFile.name}>
                                 <span className="font-medium">File:</span>{" "}
-                                {truncateFileName(selectedFile.name, 50)}
+                                {selectedFile.name}
                             </p>
                             <p className="text-sm text-gray-600 dark:text-gray-400">
                                 <span className="font-medium">Size:</span>{" "}
