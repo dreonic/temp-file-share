@@ -328,21 +328,21 @@ export default function FileList() {
                     </div>
                 </div>
             ) : (
-                <div className="rounded-xl border">
+                <div className="rounded-xl border overflow-hidden">
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>File Name</TableHead>
+                                <TableHead className="pl-4">File Name</TableHead>
                                 <TableHead>Size</TableHead>
                                 <TableHead>Expires In</TableHead>
                                 <TableHead>Shortened Link</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
+                                <TableHead className="pr-4">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {files.map((file) => (
                                 <TableRow key={file.key}>
-                                    <TableCell>
+                                    <TableCell className="pl-4">
                                         <div className="flex items-center gap-3">
                                             <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-900 to-blue-700 rounded-lg flex items-center justify-center">
                                                 <svg
@@ -373,6 +373,7 @@ export default function FileList() {
                                     </TableCell>
                                     <TableCell
                                         title={`Expires: ${formatDate(file.expiryDate)}`}
+                                        className="w-24"
                                     >
                                         <Badge variant="outline">
                                             {formatTimeRemaining(
@@ -381,7 +382,7 @@ export default function FileList() {
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center justify-between gap-2">
                                             <a
                                                 href={file.shortUrl}
                                                 target="_blank"
@@ -436,8 +437,8 @@ export default function FileList() {
                                             </Button>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex items-center justify-end gap-2">
+                                    <TableCell className="text-right pr-4">
+                                        <div className={`flex items-center gap-2 ${!file.customLinkSet ? 'justify-between' : 'justify-end'}`}>
                                             {!file.customLinkSet && (
                                                 <Button
                                                     variant="outline"
