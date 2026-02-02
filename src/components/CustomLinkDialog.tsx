@@ -82,8 +82,8 @@ export default function CustomLinkDialog({
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Set Custom Short Link</DialogTitle>
-                    <DialogDescription>
-                        Create a custom short link for <strong>{fileName}</strong>. This can only be set once and cannot be changed later.
+                    <DialogDescription className="text-wrap break-all">
+                        Create a custom short link for <strong>{fileName}</strong>.<br />Note: This can only be set once and cannot be changed later.
                     </DialogDescription>
                 </DialogHeader>
 
