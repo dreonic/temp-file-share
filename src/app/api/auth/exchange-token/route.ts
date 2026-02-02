@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cognitoConfig } from "@/lib/cognito-config";
 
 // IMPORTANT: Client secret is now only in the backend
-const COGNITO_CLIENT_SECRET = process.env.COGNITO_CLIENT_SECRET || "";
+const COGNITO_CLIENT_SECRET = process.env.COGNITO_CLIENT_SECRET;
 
 interface TokenResponse {
     access_token: string;
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
         if (!code) {
             return NextResponse.json(
                 { error: "Authorization code is required" },
-                { status: 400 }
+                { status: 400 },
             );
         }
 
@@ -35,11 +35,11 @@ export async function POST(request: NextRequest) {
                 body: new URLSearchParams({
                     grant_type: "authorization_code",
                     client_id: cognitoConfig.clientId,
-                    client_secret: COGNITO_CLIENT_SECRET,
+                    // client_secret: COGNITO_CLIENT_SECRET,
                     code: code,
                     redirect_uri: cognitoConfig.redirectUri,
                 }),
-            }
+            },
         );
 
         if (!tokenResponse.ok) {
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
             console.error("Token exchange failed:", errorText);
             return NextResponse.json(
                 { error: "Failed to exchange code for tokens" },
-                { status: 500 }
+                { status: 500 },
             );
         }
 
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
                 details:
                     error instanceof Error ? error.message : "Unknown error",
             },
-            { status: 500 }
+            { status: 500 },
         );
     }
 }

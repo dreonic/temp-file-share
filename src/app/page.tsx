@@ -1,49 +1,46 @@
 "use client";
 
-import Image from "next/image";
-import LoginButton from "@/components/LoginButton";
-import UserProfile from "@/components/UserProfile";
-import AuthWrapper from "@/components/AuthWrapper";
-import FileList from "@/components/FileList";
-// import ApiTest from "@/components/ApiTest";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import LandingContent from "@/components/LandingContent";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function Home() {
-    return (
-        <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-            <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start w-full max-w-6xl">
-                <div className="flex justify-between items-center w-full">
-                    <AuthWrapper
-                        authenticated={<UserProfile />}
-                        unauthenticated={<LoginButton />}
-                    />
-                </div>
+    const { signIn, isAuthenticated, loading } = useAuth();
+    const router = useRouter();
 
-                <AuthWrapper
-                    authenticated={
-                        <div className="w-full">
-                            <h1 className="text-3xl font-bold mb-8 text-center">
-                                Authenticated: File Share Dashboard
-                            </h1>
-                            {/* <ApiTest /> */}
-                            <FileList />
-                        </div>
-                    }
-                    unauthenticated={
-                        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-                            <li>
-                                Unauthenticated users cannot access the
-                                dashboard
-                            </li>
-                            <li className="tracking-[-.01em]">
-                                Sign in to access secure file sharing
-                            </li>
-                            <li className="tracking-[-.01em]">
-                                Share files temporarily with others
-                            </li>
-                        </ol>
-                    }
-                />
-            </main>
+    // Redirect authenticated users to /home
+    useEffect(() => {
+        if (!loading && isAuthenticated) {
+            router.push("/home");
+        }
+    }, [isAuthenticated, loading, router]);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-lg">Loading...</div>
+            </div>
+        );
+    }
+
+    // Only show landing page for unauthenticated users
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center px-4">
+            <LandingContent />
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-8">
+                <Button variant="outline" asChild>
+                    <Link href="/about">
+                        Read More
+                    </Link>
+                </Button>
+                <Button onClick={signIn}>
+                    Sign In
+                </Button>
+            </div>
         </div>
     );
 }

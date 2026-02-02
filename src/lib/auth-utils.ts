@@ -14,7 +14,7 @@ import UserInfo from "@/types/user-info";
 // Exchange authorization code for tokens via backend API
 // This keeps the client secret secure on the backend
 export const exchangeCodeForTokens = async (
-    code: string
+    code: string,
 ): Promise<TokenResponse> => {
     const response = await fetch("/api/auth/exchange-token", {
         method: "POST",
@@ -41,7 +41,7 @@ export const getUserInfo = async (accessToken: string): Promise<UserInfo> => {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
             },
-        }
+        },
     );
 
     if (!response.ok) {
@@ -118,7 +118,7 @@ export const handleAuthCallback = async (): Promise<UserInfo | null> => {
         window.history.replaceState(
             {},
             document.title,
-            window.location.pathname
+            window.location.pathname,
         );
 
         return userInfo;

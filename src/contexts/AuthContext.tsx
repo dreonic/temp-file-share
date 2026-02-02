@@ -7,7 +7,7 @@ import {
     getUserInfo,
     handleAuthCallback as handleAuthCallbackUtil,
 } from "@/lib/auth-utils";
-import { getLogoutUrl } from "@/lib/cognito-config";
+import { getLoginUrl, getLogoutUrl } from "@/lib/cognito-config";
 
 import UserInfo from "@/types/user-info";
 
@@ -19,6 +19,7 @@ It handles initialization, sign-out, and exposes user info and loading state.
 interface AuthContextType {
     user: UserInfo | null;
     loading: boolean;
+    signIn: () => void;
     signOut: () => void;
     isAuthenticated: boolean;
     error: string | null;
@@ -64,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 } catch (error) {
                     console.error(
                         "Error getting user info with stored token:",
-                        error
+                        error,
                     );
                     // Token might be expired, clear it
                     clearTokens();
@@ -75,7 +76,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
             console.error("Auth initialization error:", error);
             setError(
-                error instanceof Error ? error.message : "Authentication failed"
+                error instanceof Error
+                    ? error.message
+                    : "Authentication failed",
             );
             clearTokens();
             setUser(null);
@@ -83,6 +86,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setLoading(false);
         }
+    };
+
+    const signIn = () => {
+        window.location.href = getLoginUrl();
     };
 
     const signOut = () => {
@@ -96,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const value = {
         user,
         loading,
+        signIn,
         signOut,
         isAuthenticated: !!user,
         error,

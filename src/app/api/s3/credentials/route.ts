@@ -3,8 +3,10 @@ import { cognitoConfig } from "@/lib/cognito-config";
 import { STSClient, GetFederationTokenCommand } from "@aws-sdk/client-sts";
 
 // Initialize STS client
-const stsClient = new STSClient({ region: "ap-southeast-1" });
-const BUCKET_NAME = "temp-file-share-data";
+const stsClient = new STSClient({
+    region: process.env.AWS_REGION || "ap-southeast-1",
+});
+const BUCKET_NAME = process.env.S3_BUCKET_NAME;
 
 interface UserInfo {
     sub: string;
@@ -21,7 +23,7 @@ async function verifyToken(accessToken: string): Promise<UserInfo> {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
             },
-        }
+        },
     );
 
     if (!response.ok) {
@@ -39,7 +41,7 @@ export async function GET(request: NextRequest) {
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
             return NextResponse.json(
                 { error: "Missing or invalid authorization header" },
-                { status: 401 }
+                { status: 401 },
             );
         }
 
@@ -53,7 +55,7 @@ export async function GET(request: NextRequest) {
         if (!username) {
             return NextResponse.json(
                 { error: "Username not found in token" },
-                { status: 400 }
+                { status: 400 },
             );
         }
 
@@ -106,7 +108,7 @@ export async function GET(request: NextRequest) {
             username,
             bucket: BUCKET_NAME,
             prefix: `${username}/`,
-            region: "ap-southeast-1",
+            region: process.env.AWS_REGION || "ap-southeast-1",
         });
     } catch (error) {
         console.error("Error in get-credentials:", error);
@@ -116,7 +118,7 @@ export async function GET(request: NextRequest) {
                 details:
                     error instanceof Error ? error.message : "Unknown error",
             },
-            { status: 500 }
+            { status: 500 },
         );
     }
 }
