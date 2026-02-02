@@ -22,10 +22,7 @@ export async function POST(request: NextRequest) {
                 { status: 500 }
             );
         }
-
-        console.log('Calling Lambda URL:', DATA_AUTH_LAMBDA_URL);
-        console.log('Request payload:', { fileName, contentType: fileType, fileSize });
-
+        
         const response = await fetch(DATA_AUTH_LAMBDA_URL, {
             method: 'POST',
             headers: {
@@ -38,9 +35,6 @@ export async function POST(request: NextRequest) {
                 fileSize: fileSize || 0
             })
         });
-
-        console.log('Lambda response status:', response.status);
-        console.log('Lambda response headers:', Object.fromEntries(response.headers.entries()));
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -58,8 +52,7 @@ export async function POST(request: NextRequest) {
         }
 
         const responseText = await response.text();
-        console.log('Lambda response body:', responseText);
-
+        
         let data;
         try {
             data = JSON.parse(responseText);
@@ -71,8 +64,6 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        console.log('Parsed Lambda data:', data);
-        
         return NextResponse.json(data);
     } catch (error) {
         console.error("Error generating presigned URL:", error);
