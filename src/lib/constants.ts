@@ -44,9 +44,10 @@ export const CUSTOM_LINK = {
   },
 } as const;
 
-// API endpoints (relative paths)
+// API endpoints - Direct AWS service calls (no Next.js API routes)
 export const API_ENDPOINTS = {
-  UPLOAD_URL: '/api/s3/upload-url',
-  AUTH_EXCHANGE: '/api/auth/exchange-token',
-  S3_CREDENTIALS: '/api/s3/credentials',
+  // Direct Lambda URL for file uploads
+  UPLOAD_URL: process.env.NEXT_PUBLIC_DATA_AUTH_LAMBDA_URL || '',
+  // Direct Cognito OAuth endpoint for token exchange
+  AUTH_EXCHANGE: `https://${process.env.NEXT_PUBLIC_COGNITO_DOMAIN}/oauth2/token`,
 } as const;
