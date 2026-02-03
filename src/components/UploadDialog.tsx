@@ -328,11 +328,8 @@ export default function UploadDialog({
                     {/* Short URL Display */}
                     {shortUrl && (
                         <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
-                            <p className="text-sm text-green-700 dark:text-green-400 font-medium mb-1">
+                            <p className="text-md text-green-700 dark:text-green-400 font-medium mb-1">
                                 ✅ Upload successful!
-                            </p>
-                            <p className="text-xs text-gray-600 dark:text-gray-400 break-all">
-                                {shortUrl}
                             </p>
                         </div>
                     )}
