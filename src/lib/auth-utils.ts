@@ -11,18 +11,26 @@ interface TokenResponse {
 
 import UserInfo from "@/types/user-info";
 
-// Exchange authorization code for tokens via backend API
-// This keeps the client secret secure on the backend
+// Exchange authorization code for tokens directly with Cognito
+// This is safe for public clients (no client secret required)
 export const exchangeCodeForTokens = async (
     code: string,
 ): Promise<TokenResponse> => {
-    const response = await fetch("/api/auth/exchange-token", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
+    const response = await fetch(
+        `https://${cognitoConfig.domain}/oauth2/token`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+                grant_type: "authorization_code",
+                client_id: cognitoConfig.clientId,
+                code: code,
+                redirect_uri: cognitoConfig.redirectUri,
+            }),
         },
-        body: JSON.stringify({ code }),
-    });
+    );
 
     if (!response.ok) {
         const errorText = await response.text();

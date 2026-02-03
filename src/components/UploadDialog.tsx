@@ -1,18 +1,20 @@
 "use client";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 interface UploadDialogProps {
     isOpen: boolean;
     onClose: () => void;
     onUploadComplete: () => void;
+    initialFile?: File | null;
 }
 
 export default function UploadDialog({
     isOpen,
     onClose,
     onUploadComplete,
+    initialFile,
 }: UploadDialogProps) {
     const { accessToken } = useAuth();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -21,6 +23,13 @@ export default function UploadDialog({
     const [error, setError] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [shortUrl, setShortUrl] = useState<string | null>(null);
+
+    // Set initial file when provided
+    useEffect(() => {
+        if (initialFile) {
+            setSelectedFile(initialFile);
+        }
+    }, [initialFile]);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -70,9 +79,15 @@ export default function UploadDialog({
         setShortUrl(null);
 
         try {
-            // Step 1: Get presigned URL + short link from Lambda via our API proxy
+            // Step 1: Get presigned URL + short link from Lambda directly
             setUploadProgress(10);
-            const urlResponse = await fetch("/api/s3/upload-url", {
+            const lambdaUrl = process.env.NEXT_PUBLIC_DATA_AUTH_LAMBDA_URL;
+            
+            if (!lambdaUrl) {
+                throw new Error("Lambda URL not configured");
+            }
+
+            const urlResponse = await fetch(lambdaUrl, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -80,8 +95,8 @@ export default function UploadDialog({
                 },
                 body: JSON.stringify({
                     fileName: selectedFile.name,
-                    fileType: selectedFile.type,
-                    fileSize: selectedFile.size,
+                    contentType: selectedFile.type || 'application/octet-stream',
+                    fileSize: selectedFile.size || 0,
                 }),
             });
 
@@ -91,7 +106,11 @@ export default function UploadDialog({
             }
 
             const responseData = await urlResponse.json();
-            const { uploadUrl, uploadFields, shortUrl: generatedShortUrl } = responseData;
+            const {
+                uploadUrl,
+                uploadFields,
+                shortUrl: generatedShortUrl,
+            } = responseData;
 
             // Save short URL immediately
             setShortUrl(generatedShortUrl);
@@ -99,16 +118,16 @@ export default function UploadDialog({
 
             // Step 2: Upload to S3 using presigned POST
             const formData = new FormData();
-            
+
             // Add all fields from the presigned POST
             if (uploadFields) {
                 Object.entries(uploadFields).forEach(([key, value]) => {
                     formData.append(key, value as string);
                 });
             }
-            
+
             // Add the file last (important for S3)
-            formData.append('file', selectedFile);
+            formData.append("file", selectedFile);
 
             setUploadProgress(30);
 
@@ -276,7 +295,10 @@ export default function UploadDialog({
                     {/* Selected File Info */}
                     {selectedFile && (
                         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                            <p className="text-sm text-gray-700 dark:text-gray-300 break-all" title={selectedFile.name}>
+                            <p
+                                className="text-sm text-gray-700 dark:text-gray-300 break-all"
+                                title={selectedFile.name}
+                            >
                                 <span className="font-medium">File:</span>{" "}
                                 {selectedFile.name}
                             </p>
@@ -307,7 +329,7 @@ export default function UploadDialog({
                     {shortUrl && (
                         <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
                             <p className="text-sm text-green-700 dark:text-green-400 font-medium mb-1">
-                                ✅ Upload successful! Link copied to clipboard.
+                                ✅ Upload successful!
                             </p>
                             <p className="text-xs text-gray-600 dark:text-gray-400 break-all">
                                 {shortUrl}
