@@ -50,13 +50,18 @@ export default function CustomLinkDialog({
         } catch (err: any) {
             // Handle errors from backend
             if (err.error === "Short link already exists") {
-                setError("This link is already taken. Please choose a different one.");
+                setError(
+                    "This link is already taken. Please choose a different one.",
+                );
             } else if (err.error === "Custom short link already set") {
                 setError("Custom link already set for this file.");
             } else if (err.error === "Invalid custom short link") {
                 setError(err.message || "Invalid custom link format.");
             } else {
-                setError(err.message || "Failed to set custom link. Please try again.");
+                setError(
+                    err.message ||
+                        "Failed to set custom link. Please try again.",
+                );
             }
         } finally {
             setIsSubmitting(false);
@@ -83,24 +88,33 @@ export default function CustomLinkDialog({
                 <DialogHeader>
                     <DialogTitle>Set Custom Short Link</DialogTitle>
                     <DialogDescription className="text-wrap break-all">
-                        Create a custom short link for <strong>{fileName}</strong>.<br />Note: This can only be set once and cannot be changed later.
+                        Create a custom short link for{" "}
+                        <strong>{fileName}</strong>.<br />
+                        <br />
+                        Note: This can only be set once and cannot be changed
+                        later.
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4 py-4">
+                <div className="space-y-4">
                     <div className="space-y-2">
-                        <label htmlFor="custom-link" className="text-sm font-medium">
+                        <label
+                            htmlFor="custom-link"
+                            className="text-sm font-medium"
+                        >
                             Custom Link
                         </label>
                         <div className="flex items-center gap-2">
                             <span className="text-sm text-muted-foreground">
-                                s.juanfrederick.com/
+                                tmpf.link/
                             </span>
                             <input
                                 id="custom-link"
                                 type="text"
                                 value={customLink}
-                                onChange={(e) => handleInputChange(e.target.value)}
+                                onChange={(e) =>
+                                    handleInputChange(e.target.value)
+                                }
                                 placeholder="myfile2026"
                                 className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                                 disabled={isSubmitting}
@@ -108,7 +122,8 @@ export default function CustomLinkDialog({
                             />
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            Must be at least 6 characters, letters and numbers only
+                            Must be at least 6 characters, letters and numbers
+                            only
                         </p>
                         {error && (
                             <p className="text-sm text-red-600 dark:text-red-400">
