@@ -26,7 +26,6 @@ interface FileItem {
     shortUrl: string;
     expiryDate: string;
     expiryTimestamp: number;
-    expiresInSeconds: number;
     customLinkSet?: boolean;
     status?: "pending" | "active";
 }
@@ -36,6 +35,7 @@ interface ApiResponse {
     username: string;
     totalFiles: number;
     totalUsedSizeThisMonth: number;
+    maxSizePerMonth: number;
 }
 
 export default function FileList() {
@@ -45,6 +45,7 @@ export default function FileList() {
     const [error, setError] = useState<string | null>(null);
     const [totalUsedSizeThisMonth, setTotalUsedSizeThisMonth] =
         useState<number>(0);
+    const [maxSizePerMonth, setMaxSizePerMonth] = useState<number>(1073741824);
     const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
     const [copiedFileKey, setCopiedFileKey] = useState<string | null>(null);
     const [currentTime, setCurrentTime] = useState(Date.now());
@@ -92,7 +93,10 @@ export default function FileList() {
 
             const data: ApiResponse = await response.json();
 
+            console.log("Data from fetchFiles: ", data);
+
             setTotalUsedSizeThisMonth(data.totalUsedSizeThisMonth);
+            setMaxSizePerMonth(data.maxSizePerMonth || 1073741824);
             setFiles(data.files || []);
         } catch (err) {
             console.error("Error fetching files:", err);
@@ -159,6 +163,11 @@ export default function FileList() {
         // Refresh the file list
         await fetchFiles();
     };
+    
+    const handleQuotaUpdate = (predictedTotal: number, maxQuota: number) => {
+        setTotalUsedSizeThisMonth(predictedTotal);
+        setMaxSizePerMonth(maxQuota);
+    };
 
     useEffect(() => {
         if (accessToken && user) {
@@ -213,6 +222,12 @@ export default function FileList() {
         }
     };
 
+    // Filter out expired files
+    const activeFiles = files.filter(file => {
+        const now = Math.floor(currentTime / 1000);
+        return file.expiryTimestamp > now;
+    });
+
     const handleCustomLinkClick = (file: FileItem) => {
         setSelectedFileForCustomLink(file);
         setCustomLinkDialogOpen(true);
@@ -265,15 +280,14 @@ export default function FileList() {
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            {files.length}{" "}
-                            {files.length === 1 ? "file" : "files"}
+                            {activeFiles.length}{" "}
+                            {activeFiles.length === 1 ? "file" : "files"}
                         </span>
                         <span className="text-gray-300 dark:text-gray-600">
                             •
                         </span>
                         <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            {formatFileSize(totalUsedSizeThisMonth)} used this
-                            month
+                            {formatFileSize(totalUsedSizeThisMonth)} / {formatFileSize(maxSizePerMonth)} used
                         </span>
                     </div>
                 </div>
@@ -300,7 +314,7 @@ export default function FileList() {
                 </div>
             </div>
 
-            {files.length === 0 ? (
+            {activeFiles.length === 0 ? (
                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
                     <div className="flex flex-col items-center justify-center py-16 px-4">
                         <div className="w-16 h-16 mb-4 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center">
@@ -340,7 +354,7 @@ export default function FileList() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {files.map((file) => (
+                            {activeFiles.map((file) => (
                                 <TableRow key={file.key}>
                                     <TableCell className="pl-4">
                                         <div className="flex items-center gap-3">
@@ -469,6 +483,7 @@ export default function FileList() {
                 isOpen={uploadDialogOpen}
                 onClose={() => setUploadDialogOpen(false)}
                 onUploadComplete={fetchFiles}
+                onQuotaUpdate={handleQuotaUpdate}
             />
 
             {selectedFileForCustomLink && (

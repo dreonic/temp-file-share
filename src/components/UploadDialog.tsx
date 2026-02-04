@@ -6,8 +6,9 @@ import AnimatedCheckmark from "./AnimatedCheckmark";
 
 interface UploadDialogProps {
     isOpen: boolean;
-    onClose: () => void;
-    onUploadComplete: () => void;
+    onClose?: () => void;
+    onUploadComplete?: () => void;
+    onQuotaUpdate?: (predictedTotal: number, maxQuota: number) => void;
     initialFile?: File | null;
 }
 
@@ -15,6 +16,7 @@ export default function UploadDialog({
     isOpen,
     onClose,
     onUploadComplete,
+    onQuotaUpdate,
     initialFile,
 }: UploadDialogProps) {
     const { accessToken } = useAuth();
@@ -38,8 +40,8 @@ export default function UploadDialog({
         if (showSuccess) {
             const timer = setTimeout(() => {
                 setShowSuccess(false);
-                onUploadComplete();
-                onClose();
+                onUploadComplete?.();
+                onClose?.();
             }, 1500);
             return () => clearTimeout(timer);
         }
@@ -134,6 +136,11 @@ export default function UploadDialog({
             // Save short URL immediately
             setShortUrl(generatedShortUrl);
             setUploadProgress(20);
+            
+            // Update quota immediately with predicted values
+            if (onQuotaUpdate && predictedTotalSize && maxSizePerMonth) {
+                onQuotaUpdate(predictedTotalSize, maxSizePerMonth);
+            }
 
             // Step 2: Upload to S3 using presigned POST
             const formData = new FormData();
@@ -191,7 +198,7 @@ export default function UploadDialog({
             setUploadProgress(0);
             setShortUrl(null);
             setShowSuccess(false);
-            onClose();
+            onClose?.();
         }
     };
 
