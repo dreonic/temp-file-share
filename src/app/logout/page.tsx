@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import AnimatedCheckmark from "@/components/AnimatedCheckmark";
 
-export default function LogoutPage() {
+function LogoutContent() {
     const { isAuthenticated, loading, signIn } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -100,5 +100,17 @@ export default function LogoutPage() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function LogoutPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-lg">Loading...</div>
+            </div>
+        }>
+            <LogoutContent />
+        </Suspense>
     );
 }
