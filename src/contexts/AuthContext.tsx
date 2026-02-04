@@ -6,6 +6,7 @@ import {
     clearTokens,
     getUserInfo,
     handleAuthCallback as handleAuthCallbackUtil,
+    isTokenExpired,
 } from "@/lib/auth-utils";
 import { getLoginUrl, getLogoutUrl } from "@/lib/cognito-config";
 
@@ -58,6 +59,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // If no callback, check for existing tokens
             const tokens = getStoredTokens();
             if (tokens.accessToken) {
+                // Check if token is expired
+                if (isTokenExpired()) {
+                    console.log("Token expired, redirecting to logout");
+                    clearTokens();
+                    setUser(null);
+                    setAccessToken(null);
+                    // Redirect to logout page with expired reason
+                    if (typeof window !== "undefined") {
+                        window.location.href = "/logout?reason=expired";
+                    }
+                    return;
+                }
+
                 try {
                     setAccessToken(tokens.accessToken);
                     const userInfo = await getUserInfo(tokens.accessToken);
@@ -67,10 +81,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         "Error getting user info with stored token:",
                         error,
                     );
-                    // Token might be expired, clear it
+                    // Token might be expired or invalid, clear it
                     clearTokens();
                     setUser(null);
                     setAccessToken(null);
+                    // Redirect to logout page with expired reason
+                    if (typeof window !== "undefined") {
+                        window.location.href = "/logout?reason=expired";
+                    }
                 }
             }
         } catch (error) {

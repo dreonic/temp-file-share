@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 
 export default function Navbar() {
-    const { user, signIn } = useAuth();
+    const { user, signIn, signOut } = useAuth();
 
     return (
         <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
@@ -41,10 +41,7 @@ export default function Navbar() {
                         {user ? (
                             <Button
                                 variant="outline"
-                                onClick={() => {
-                                    // Sign out will be handled via context
-                                    window.location.href = "/";
-                                }}
+                                onClick={signOut}
                             >
                                 Sign Out
                             </Button>

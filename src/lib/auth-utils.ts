@@ -64,6 +64,7 @@ export const getUserInfo = async (accessToken: string): Promise<UserInfo> => {
 // Store tokens securely in cookies
 export const storeTokens = (tokens: TokenResponse): void => {
     const expiresInDays = tokens.expires_in / (24 * 60 * 60); // Convert seconds to days
+    const expiresAt = Date.now() + tokens.expires_in * 1000; // Timestamp when token expires
 
     Cookies.set("access_token", tokens.access_token, {
         expires: expiresInDays,
@@ -72,6 +73,13 @@ export const storeTokens = (tokens: TokenResponse): void => {
     });
 
     Cookies.set("id_token", tokens.id_token, {
+        expires: expiresInDays,
+        secure: true,
+        sameSite: "strict",
+    });
+
+    // Store expiration timestamp
+    Cookies.set("token_expires_at", expiresAt.toString(), {
         expires: expiresInDays,
         secure: true,
         sameSite: "strict",
@@ -150,10 +158,20 @@ export const clearTokens = (): void => {
     Cookies.remove("access_token");
     Cookies.remove("id_token");
     Cookies.remove("refresh_token");
+    Cookies.remove("token_expires_at");
+};
+
+// Check if token is expired
+export const isTokenExpired = (): boolean => {
+    const expiresAtStr = Cookies.get("token_expires_at");
+    if (!expiresAtStr) return true;
+    
+    const expiresAt = parseInt(expiresAtStr, 10);
+    return Date.now() >= expiresAt;
 };
 
 // Check if user is currently authenticated
 export const isAuthenticated = (): boolean => {
     const tokens = getStoredTokens();
-    return !!tokens.accessToken && !!tokens.idToken;
+    return !!tokens.accessToken && !!tokens.idToken && !isTokenExpired();
 };
