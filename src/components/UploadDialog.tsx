@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useCallback, useEffect } from "react";
+import AnimatedCheckmark from "./AnimatedCheckmark";
 
 interface UploadDialogProps {
     isOpen: boolean;
@@ -23,6 +24,7 @@ export default function UploadDialog({
     const [error, setError] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [shortUrl, setShortUrl] = useState<string | null>(null);
+    const [showSuccess, setShowSuccess] = useState(false);
 
     // Set initial file when provided
     useEffect(() => {
@@ -31,12 +33,25 @@ export default function UploadDialog({
         }
     }, [initialFile]);
 
+    // Auto-hide success message after 1 second and close dialog
+    useEffect(() => {
+        if (showSuccess) {
+            const timer = setTimeout(() => {
+                setShowSuccess(false);
+                onUploadComplete();
+                onClose();
+            }, 1500);
+            return () => clearTimeout(timer);
+        }
+    }, [showSuccess, onUploadComplete, onClose]);
+
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             setSelectedFile(file);
             setError(null);
             setShortUrl(null);
+            setShowSuccess(false);
         }
     };
 
@@ -67,6 +82,7 @@ export default function UploadDialog({
             setSelectedFile(file);
             setError(null);
             setShortUrl(null);
+            setShowSuccess(false);
         }
     };
 
@@ -77,6 +93,7 @@ export default function UploadDialog({
         setError(null);
         setUploadProgress(0);
         setShortUrl(null);
+        setShowSuccess(false);
 
         try {
             // Step 1: Get presigned URL + short link from Lambda directly
@@ -110,6 +127,8 @@ export default function UploadDialog({
                 uploadUrl,
                 uploadFields,
                 shortUrl: generatedShortUrl,
+                predictedTotalSize,
+                maxSizePerMonth,
             } = responseData;
 
             // Save short URL immediately
@@ -154,12 +173,7 @@ export default function UploadDialog({
             }
 
             setSelectedFile(null);
-
-            // Notify parent component
-            setTimeout(() => {
-                onUploadComplete();
-                onClose();
-            }, 1000);
+            setShowSuccess(true);
         } catch (err) {
             console.error("Upload error:", err);
             setError(
@@ -168,14 +182,15 @@ export default function UploadDialog({
         } finally {
             setUploading(false);
         }
-    }, [selectedFile, accessToken, onUploadComplete, onClose]);
+    }, [selectedFile, accessToken]);
 
     const handleClose = () => {
-        if (!uploading) {
+        if (!uploading && !showSuccess) {
             setSelectedFile(null);
             setError(null);
             setUploadProgress(0);
             setShortUrl(null);
+            setShowSuccess(false);
             onClose();
         }
     };
@@ -191,7 +206,7 @@ export default function UploadDialog({
                     </h3>
                     <button
                         onClick={handleClose}
-                        disabled={uploading}
+                        disabled={uploading || showSuccess}
                         className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50 transition-colors"
                     >
                         <svg
@@ -211,25 +226,42 @@ export default function UploadDialog({
                 </div>
 
                 <div className="space-y-4">
-                    {/* Drag & Drop Area */}
                     <div
                         onDragEnter={handleDragEnter}
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
                         className={`relative border-2 border-dashed rounded-2xl p-8 transition-all duration-200 ${
-                            isDragging
+                            showSuccess
+                                ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                                : isDragging
                                 ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
                                 : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
                         }`}
                     >
-                        <input
-                            type="file"
-                            onChange={handleFileSelect}
-                            disabled={uploading}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                            id="file-upload"
-                        />
+                        {!showSuccess && (
+                            <input
+                                type="file"
+                                onChange={handleFileSelect}
+                                disabled={uploading}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                                id="file-upload"
+                            />
+                        )}
+                        
+                        {showSuccess ? (
+                            // Success state with animated checkmark
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <AnimatedCheckmark 
+                                    className="text-green-600 dark:text-green-400 mb-4" 
+                                    size="w-24 h-24"
+                                />
+                                <p className="text-2xl font-bold text-green-700 dark:text-green-400">
+                                    Upload Successful!
+                                </p>
+                            </div>
+                        ) : (
+                            // Normal drop area
                         <div className="flex flex-col items-center justify-center text-center">
                             <div className="flex gap-4 mb-4">
                                 {/* Image Icon */}
@@ -290,6 +322,7 @@ export default function UploadDialog({
                                 or click to browse
                             </p>
                         </div>
+                        )}
                     </div>
 
                     {/* Selected File Info */}
@@ -321,15 +354,6 @@ export default function UploadDialog({
                             </div>
                             <p className="text-sm text-center text-gray-600 dark:text-gray-400">
                                 Uploading... {uploadProgress}%
-                            </p>
-                        </div>
-                    )}
-
-                    {/* Short URL Display */}
-                    {shortUrl && (
-                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
-                            <p className="text-md text-green-700 dark:text-green-400 font-medium mb-1">
-                                ✅ Upload successful!
                             </p>
                         </div>
                     )}

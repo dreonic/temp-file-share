@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import AnimatedCheckmark from "@/components/AnimatedCheckmark";
 
 export default function LogoutPage() {
     const { isAuthenticated, loading, signIn } = useAuth();
@@ -35,19 +36,18 @@ export default function LogoutPage() {
             <div className="max-w-md w-full text-center">
                 {/* Icon */}
                 <div className="mb-6">
-                    <div className={`w-16 h-16 ${
-                        isExpired 
-                            ? 'bg-yellow-100 dark:bg-yellow-900/30' 
-                            : 'bg-green-100 dark:bg-green-900/30'
-                    } rounded-full flex items-center justify-center mx-auto mb-4`}>
+                    <div className="mx-auto w-24 h-24">
                         {isExpired ? (
-                            <svg className="w-8 h-8 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                            <div className="w-24 h-24 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center">
+                                <svg className="w-12 h-12 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
                         ) : (
-                            <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
+                            <AnimatedCheckmark 
+                                className="text-green-600 dark:text-green-400" 
+                                size="w-24 h-24"
+                            />
                         )}
                     </div>
                     
