@@ -14,10 +14,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     
-    # Required for OIDC authentication
+    # Required for OIDC authentication and GitHub Deployments
     permissions:
       id-token: write
       contents: read
+      deployments: write
     
     steps:
       - name: Checkout code
@@ -32,6 +33,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Lint code
+        run: npm run lint
+
       - name: Build Next.js static export
         run: npm run build
         env:
@@ -43,6 +47,18 @@ jobs:
           NEXT_PUBLIC_LOGOUT_URI: ${{ secrets.NEXT_PUBLIC_LOGOUT_URI }}
           NEXT_PUBLIC_COGNITO_SCOPE: ${{ secrets.NEXT_PUBLIC_COGNITO_SCOPE }}
           NEXT_PUBLIC_DATA_AUTH_LAMBDA_URL: ${{ secrets.NEXT_PUBLIC_DATA_AUTH_LAMBDA_URL }}
+
+      - name: Validate build output
+        run: |
+          if [ ! -d "out" ]; then
+            echo "❌ Build output directory 'out' not found!"
+            exit 1
+          fi
+          if [ ! -f "out/index.html" ]; then
+            echo "❌ index.html not found in build output!"
+            exit 1
+          fi
+          echo "✅ Build output validated successfully"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -72,6 +88,32 @@ jobs:
           echo "distribution-id=$DISTRIBUTION_ID" >> $GITHUB_OUTPUT
           echo "frontend-url=$FRONTEND_URL" >> $GITHUB_OUTPUT
 
+      - name: Create GitHub deployment
+        id: deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: 'production',
+              auto_merge: false,
+              required_contexts: [],
+              description: 'Deploying to AWS S3 + CloudFront'
+            });
+            
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.data.id,
+              state: 'in_progress',
+              description: 'Deployment in progress',
+              environment_url: '${{ steps.stack-outputs.outputs.frontend-url }}'
+            });
+            
+            return deployment.data.id;
+
       - name: Deploy to S3
         run: |
           aws s3 sync out s3://${{ steps.stack-outputs.outputs.bucket-name }} --delete
@@ -87,7 +129,35 @@ jobs:
           
           echo "✅ CloudFront cache invalidated! Invalidation ID: $INVALIDATION_ID"
 
+      - name: Update deployment status (success)
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.result }},
+              state: 'success',
+              description: 'Deployment successful',
+              environment_url: '${{ steps.stack-outputs.outputs.frontend-url }}'
+            });
+
+      - name: Update deployment status (failure)
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.result }},
+              state: 'failure',
+              description: 'Deployment failed'
+            });
+
       - name: Deployment summary
+        if: success()
         run: |
           echo "🎉 Deployment complete!"
           echo "Frontend URL: ${{ steps.stack-outputs.outputs.frontend-url }}"
