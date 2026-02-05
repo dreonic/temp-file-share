@@ -45,7 +45,8 @@ export default function UploadDialog({
             }, 1500);
             return () => clearTimeout(timer);
         }
-    }, [showSuccess, onUploadComplete, onClose]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showSuccess]);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -101,7 +102,7 @@ export default function UploadDialog({
             // Step 1: Get presigned URL + short link from Lambda directly
             setUploadProgress(10);
             const lambdaUrl = process.env.NEXT_PUBLIC_DATA_AUTH_LAMBDA_URL;
-            
+
             if (!lambdaUrl) {
                 throw new Error("Lambda URL not configured");
             }
@@ -114,7 +115,8 @@ export default function UploadDialog({
                 },
                 body: JSON.stringify({
                     fileName: selectedFile.name,
-                    contentType: selectedFile.type || 'application/octet-stream',
+                    contentType:
+                        selectedFile.type || "application/octet-stream",
                     fileSize: selectedFile.size || 0,
                 }),
             });
@@ -136,7 +138,7 @@ export default function UploadDialog({
             // Save short URL immediately
             setShortUrl(generatedShortUrl);
             setUploadProgress(20);
-            
+
             // Update quota immediately with predicted values
             if (onQuotaUpdate && predictedTotalSize && maxSizePerMonth) {
                 onQuotaUpdate(predictedTotalSize, maxSizePerMonth);
@@ -242,8 +244,8 @@ export default function UploadDialog({
                             showSuccess
                                 ? "border-green-500 bg-green-50 dark:bg-green-900/20"
                                 : isDragging
-                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                                : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
+                                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                  : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
                         }`}
                     >
                         {!showSuccess && (
@@ -255,12 +257,12 @@ export default function UploadDialog({
                                 id="file-upload"
                             />
                         )}
-                        
+
                         {showSuccess ? (
                             // Success state with animated checkmark
                             <div className="flex flex-col items-center justify-center text-center">
-                                <AnimatedCheckmark 
-                                    className="text-green-600 dark:text-green-400 mb-4" 
+                                <AnimatedCheckmark
+                                    className="text-green-600 dark:text-green-400 mb-4"
                                     size="w-24 h-24"
                                 />
                                 <p className="text-2xl font-bold text-green-700 dark:text-green-400">
@@ -269,66 +271,66 @@ export default function UploadDialog({
                             </div>
                         ) : (
                             // Normal drop area
-                        <div className="flex flex-col items-center justify-center text-center">
-                            <div className="flex gap-4 mb-4">
-                                {/* Image Icon */}
-                                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                                    <svg
-                                        className="w-6 h-6 text-purple-600 dark:text-purple-400"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                        />
-                                    </svg>
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <div className="flex gap-4 mb-4">
+                                    {/* Image Icon */}
+                                    <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                                        <svg
+                                            className="w-6 h-6 text-purple-600 dark:text-purple-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    {/* File Icon */}
+                                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                                        <svg
+                                            className="w-6 h-6 text-blue-600 dark:text-blue-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    {/* Video Icon */}
+                                    <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                                        <svg
+                                            className="w-6 h-6 text-green-600 dark:text-green-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                            />
+                                        </svg>
+                                    </div>
                                 </div>
-                                {/* File Icon */}
-                                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                                    <svg
-                                        className="w-6 h-6 text-blue-600 dark:text-blue-400"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                        />
-                                    </svg>
-                                </div>
-                                {/* Video Icon */}
-                                <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                                    <svg
-                                        className="w-6 h-6 text-green-600 dark:text-green-400"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                                        />
-                                    </svg>
-                                </div>
+                                <p className="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
+                                    {isDragging
+                                        ? "Drop your file here"
+                                        : "Drop your file here"}
+                                </p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    or click to browse
+                                </p>
                             </div>
-                            <p className="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-                                {isDragging
-                                    ? "Drop your file here"
-                                    : "Drop your file here"}
-                            </p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                or click to browse
-                            </p>
-                        </div>
                         )}
                     </div>
 
