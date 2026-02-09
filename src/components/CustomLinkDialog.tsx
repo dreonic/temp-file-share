@@ -87,9 +87,10 @@ export default function CustomLinkDialog({
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Set Custom Short Link</DialogTitle>
-                    <DialogDescription className="text-wrap break-all">
+                    <DialogDescription className="text-wrap">
                         Create a custom short link for{" "}
-                        <strong>{fileName}</strong>.<br />
+                        <strong className="break-all">{fileName}</strong>.
+                        <br />
                         <br />
                         Note: This can only be set once and cannot be changed
                         later.
@@ -115,7 +116,7 @@ export default function CustomLinkDialog({
                                 onChange={(e) =>
                                     handleInputChange(e.target.value)
                                 }
-                                placeholder="myfile2026"
+                                placeholder="mycustomlink"
                                 className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                                 disabled={isSubmitting}
                                 autoComplete="off"

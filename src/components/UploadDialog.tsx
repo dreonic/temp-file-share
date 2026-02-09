@@ -3,6 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useCallback, useEffect } from "react";
 import AnimatedCheckmark from "./AnimatedCheckmark";
+import { formatFileSize } from "@/lib/formatters";
 
 interface UploadDialogProps {
     isOpen: boolean;
@@ -73,16 +74,18 @@ export default function UploadDialog({
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (files.length > 0) {
-            setSelectedFiles(files);
-            const newStatuses = new Map<string, FileUploadStatus>();
-            files.forEach((file) => {
-                newStatuses.set(getFileId(file), {
-                    file,
-                    progress: 0,
-                    status: "pending",
+            setSelectedFiles((prev) => [...prev, ...files]);
+            setFileStatuses((prev) => {
+                const newStatuses = new Map(prev);
+                files.forEach((file) => {
+                    newStatuses.set(getFileId(file), {
+                        file,
+                        progress: 0,
+                        status: "pending",
+                    });
                 });
+                return newStatuses;
             });
-            setFileStatuses(newStatuses);
             setShowSuccess(false);
         }
     };
@@ -120,16 +123,18 @@ export default function UploadDialog({
 
         const files = Array.from(e.dataTransfer.files || []);
         if (files.length > 0) {
-            setSelectedFiles(files);
-            const newStatuses = new Map<string, FileUploadStatus>();
-            files.forEach((file) => {
-                newStatuses.set(getFileId(file), {
-                    file,
-                    progress: 0,
-                    status: "pending",
+            setSelectedFiles((prev) => [...prev, ...files]);
+            setFileStatuses((prev) => {
+                const newStatuses = new Map(prev);
+                files.forEach((file) => {
+                    newStatuses.set(getFileId(file), {
+                        file,
+                        progress: 0,
+                        status: "pending",
+                    });
                 });
+                return newStatuses;
             });
-            setFileStatuses(newStatuses);
             setShowSuccess(false);
         }
     };
@@ -493,9 +498,7 @@ export default function UploadDialog({
                                     </div>
                                 </div>
                                 <p className="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-                                    {isDragging
-                                        ? "Drop your files here"
-                                        : "Drop your files here"}
+                                    Drop your files here
                                 </p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
                                     or click to browse
@@ -522,12 +525,7 @@ export default function UploadDialog({
                                                 {file.name}
                                             </p>
                                             <p className="text-xs text-gray-600 dark:text-gray-400">
-                                                {(
-                                                    file.size /
-                                                    1024 /
-                                                    1024
-                                                ).toFixed(2)}{" "}
-                                                MB
+                                                {formatFileSize(file.size)}
                                             </p>
                                         </div>
                                         <button
@@ -650,16 +648,6 @@ export default function UploadDialog({
                                     ),
                                 )}
                             </div>
-                        </div>
-                    )}
-
-                    {/* Success URLs Display */}
-                    {showSuccess && (
-                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 max-h-40 overflow-y-auto">
-                            <p className="text-sm font-medium text-green-700 dark:text-green-400">
-                                Successfully uploaded {selectedFiles.length}{" "}
-                                Files
-                            </p>
                         </div>
                     )}
 
