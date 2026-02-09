@@ -498,8 +498,7 @@ export default function UploadDialog({
                                         : "Drop your files here"}
                                 </p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    or click to browse (multiple files
-                                    supported)
+                                    or click to browse
                                 </p>
                             </div>
                         )}

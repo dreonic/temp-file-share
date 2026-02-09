@@ -8,7 +8,7 @@ export default function AboutPage() {
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
                 <div className="flex flex-col items-center">
-                    <h1 className="text-4xl font-bold mb-8">
+                    <h1 className="text-4xl text-center md:text-left font-bold mb-8">
                         About Temp File Share
                     </h1>
 
@@ -37,8 +37,6 @@ export default function AboutPage() {
                                 <a
                                     href="https://www.juanfrederick.com"
                                     className="text-blue-600 underline"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
                                 >
                                     my website
                                 </a>

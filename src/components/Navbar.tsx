@@ -15,7 +15,7 @@ export default function Navbar() {
                         href="/"
                         className="flex items-center gap-3 hover:opacity-80 transition-opacity"
                     >
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-900 to-blue-700 rounded-lg flex items-center justify-center">
+                        <div className="hidden md:flex w-10 h-10 bg-gradient-to-br from-blue-900 to-blue-700 rounded-lg items-center justify-center">
                             <svg
                                 className="w-6 h-6 text-white"
                                 fill="none"
@@ -31,7 +31,7 @@ export default function Navbar() {
                             </svg>
                         </div>
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                            File Share
+                            Temp File Share
                         </h1>
                     </Link>
                     <div className="flex items-center gap-4">
@@ -39,10 +39,7 @@ export default function Navbar() {
                             <Link href="/about">About</Link>
                         </Button>
                         {user ? (
-                            <Button
-                                variant="outline"
-                                onClick={signOut}
-                            >
+                            <Button variant="outline" onClick={signOut}>
                                 Sign Out
                             </Button>
                         ) : (

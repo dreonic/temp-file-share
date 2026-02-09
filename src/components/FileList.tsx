@@ -15,6 +15,12 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { truncateFileName } from "@/lib/formatters";
 
 interface FileItem {
@@ -36,6 +42,7 @@ interface ApiResponse {
     totalFiles: number;
     totalUsedSizeThisMonth: number;
     maxSizePerMonth: number;
+    nextMonthReset: string;
 }
 
 export default function FileList() {
@@ -49,14 +56,20 @@ export default function FileList() {
     const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
     const [copiedFileKey, setCopiedFileKey] = useState<string | null>(null);
     const [currentTime, setCurrentTime] = useState(Date.now());
-    
+    const [nextMonthResetTime, setNextMonthResetTime] = useState<Date>(() => {
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    });
+
     // Custom link dialog state
     const [customLinkDialogOpen, setCustomLinkDialogOpen] = useState(false);
-    const [selectedFileForCustomLink, setSelectedFileForCustomLink] = useState<FileItem | null>(null);
-    
+    const [selectedFileForCustomLink, setSelectedFileForCustomLink] =
+        useState<FileItem | null>(null);
+
     // Delete dialog state
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [selectedFileForDelete, setSelectedFileForDelete] = useState<FileItem | null>(null);
+    const [selectedFileForDelete, setSelectedFileForDelete] =
+        useState<FileItem | null>(null);
 
     const API_BASE_URL = process.env.NEXT_PUBLIC_DATA_AUTH_LAMBDA_URL || "";
 
@@ -98,6 +111,7 @@ export default function FileList() {
             setTotalUsedSizeThisMonth(data.totalUsedSizeThisMonth);
             setMaxSizePerMonth(data.maxSizePerMonth || 1073741824);
             setFiles(data.files || []);
+            setNextMonthResetTime(new Date(data.nextMonthReset));
         } catch (err) {
             console.error("Error fetching files:", err);
 
@@ -113,7 +127,10 @@ export default function FileList() {
         }
     }, [accessToken, API_BASE_URL]);
 
-    const setCustomLink = async (s3Location: string, customShortLink: string) => {
+    const setCustomLink = async (
+        s3Location: string,
+        customShortLink: string,
+    ) => {
         if (!accessToken) throw new Error("Not authenticated");
 
         const response = await fetch(`${API_BASE_URL}`, {
@@ -134,10 +151,10 @@ export default function FileList() {
         }
 
         const result = await response.json();
-        
+
         // Refresh the file list
         await fetchFiles();
-        
+
         return result;
     };
 
@@ -163,7 +180,7 @@ export default function FileList() {
         // Refresh the file list
         await fetchFiles();
     };
-    
+
     const handleQuotaUpdate = (predictedTotal: number, maxQuota: number) => {
         setTotalUsedSizeThisMonth(predictedTotal);
         setMaxSizePerMonth(maxQuota);
@@ -223,7 +240,7 @@ export default function FileList() {
     };
 
     // Filter out expired files
-    const activeFiles = files.filter(file => {
+    const activeFiles = files.filter((file) => {
         const now = Math.floor(currentTime / 1000);
         return file.expiryTimestamp > now;
     });
@@ -240,12 +257,14 @@ export default function FileList() {
 
     const handleDeleteConfirm = async () => {
         if (!selectedFileForDelete) return;
-        
+
         try {
             await deleteFile(selectedFileForDelete.key);
         } catch (err) {
             console.error("Error deleting file:", err);
-            setError(err instanceof Error ? err.message : "Failed to delete file");
+            setError(
+                err instanceof Error ? err.message : "Failed to delete file",
+            );
         }
     };
 
@@ -265,11 +284,11 @@ export default function FileList() {
                     <p className="text-red-700 dark:text-red-400 font-medium">
                         Error loading files
                     </p>
-                    <p className="text-red-600 dark:text-red-500 text-sm mt-1">{error}</p>
+                    <p className="text-red-600 dark:text-red-500 text-sm mt-1">
+                        {error}
+                    </p>
                 </div>
-                <Button onClick={fetchFiles}>
-                    Try Again
-                </Button>
+                <Button onClick={fetchFiles}>Try Again</Button>
             </div>
         );
     }
@@ -286,9 +305,33 @@ export default function FileList() {
                         <span className="text-gray-300 dark:text-gray-600">
                             •
                         </span>
-                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            {formatFileSize(totalUsedSizeThisMonth)} / {formatFileSize(maxSizePerMonth)} used
-                        </span>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400 cursor-help border-b border-dotted border-gray-400">
+                                        {formatFileSize(totalUsedSizeThisMonth)}{" "}
+                                        / {formatFileSize(maxSizePerMonth)} used
+                                        this month
+                                    </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>
+                                        Quota resets on{" "}
+                                        {nextMonthResetTime.toLocaleDateString(
+                                            "en-US",
+                                            {
+                                                month: "long",
+                                                day: "numeric",
+                                                year: "numeric",
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                                timeZoneName: "short",
+                                            },
+                                        )}
+                                    </p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 </div>
                 <div className="flex gap-2">
@@ -336,8 +379,7 @@ export default function FileList() {
                             No files yet
                         </h3>
                         <p className="text-gray-500 dark:text-gray-400 text-center max-w-sm">
-                            Upload your first file to start sharing with
-                            time-limited links
+                            Upload your first file to start sharing
                         </p>
                     </div>
                 </div>
@@ -346,7 +388,9 @@ export default function FileList() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="pl-4">File Name</TableHead>
+                                <TableHead className="pl-4">
+                                    File Name
+                                </TableHead>
                                 <TableHead>Size</TableHead>
                                 <TableHead>Expires In</TableHead>
                                 <TableHead>Shortened Link</TableHead>
@@ -374,8 +418,14 @@ export default function FileList() {
                                                 </svg>
                                             </div>
                                             <div className="flex flex-col">
-                                                <p className="font-medium" title={file.fileName}>
-                                                    {truncateFileName(file.fileName, 60)}
+                                                <p
+                                                    className="font-medium"
+                                                    title={file.fileName}
+                                                >
+                                                    {truncateFileName(
+                                                        file.fileName,
+                                                        60,
+                                                    )}
                                                 </p>
                                             </div>
                                         </div>
@@ -452,12 +502,18 @@ export default function FileList() {
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right pr-4">
-                                        <div className={`flex items-center gap-2 ${!file.customLinkSet ? 'justify-between' : 'justify-end'}`}>
+                                        <div
+                                            className={`flex items-center gap-2 ${!file.customLinkSet ? "justify-between" : "justify-end"}`}
+                                        >
                                             {!file.customLinkSet && (
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
-                                                    onClick={() => handleCustomLinkClick(file)}
+                                                    onClick={() =>
+                                                        handleCustomLinkClick(
+                                                            file,
+                                                        )
+                                                    }
                                                 >
                                                     Customize Link
                                                 </Button>
@@ -465,7 +521,9 @@ export default function FileList() {
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => handleDeleteClick(file)}
+                                                onClick={() =>
+                                                    handleDeleteClick(file)
+                                                }
                                                 className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
                                             >
                                                 Delete
