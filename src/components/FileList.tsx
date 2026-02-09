@@ -21,7 +21,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { truncateFileName } from "@/lib/formatters";
+import { truncateFileName, formatFileSize } from "@/lib/formatters";
 
 interface FileItem {
     key: string;
@@ -199,14 +199,6 @@ export default function FileList() {
         }, 1000);
         return () => clearInterval(interval);
     }, []);
-
-    const formatFileSize = (bytes: number): string => {
-        if (bytes === 0) return "0 Bytes";
-        const k = 1024;
-        const sizes = ["Bytes", "KB", "MB", "GB"];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-    };
 
     const formatDate = (dateString: string): string => {
         return new Date(dateString).toLocaleString();
@@ -402,19 +394,22 @@ export default function FileList() {
                                 <TableRow key={file.key}>
                                     <TableCell className="pl-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-blue-900 to-blue-700 rounded-lg flex items-center justify-center">
+                                            {/* File icon */}
+                                            <div className="flex-shrink-0 w-8 h-10 rounded-lg flex items-center justify-center">
                                                 <svg
-                                                    className="w-5 h-5 text-white"
-                                                    fill="none"
-                                                    stroke="currentColor"
+                                                    xmlns="http://www.w3.org/2000/svg"
                                                     viewBox="0 0 24 24"
+                                                    width="24"
+                                                    height="24"
+                                                    fill="none"
+                                                    stroke="#000000"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    style={{ opacity: 1 }}
                                                 >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                                    />
+                                                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                                                    <path d="M14 2v4a2 2 0 0 0 2 2h4M10 9H8m8 4H8m8 4H8" />
                                                 </svg>
                                             </div>
                                             <div className="flex flex-col">

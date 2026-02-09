@@ -3,31 +3,42 @@
  * @param fileName - The filename to truncate
  * @param maxLength - Maximum length of the truncated filename (default: 30)
  * @returns Truncated filename with extension preserved
- * 
+ *
  * @example
  * truncateFileName("very-long-filename.pdf", 20) // "very-long...pdf"
  * truncateFileName("short.txt", 30) // "short.txt"
  */
-export const truncateFileName = (fileName: string, maxLength: number = 30): string => {
+export const truncateFileName = (
+    fileName: string,
+    maxLength: number = 30,
+): string => {
     if (fileName.length <= maxLength) return fileName;
 
     // Find the last dot to separate name and extension
-    const lastDotIndex = fileName.lastIndexOf('.');
-    
+    const lastDotIndex = fileName.lastIndexOf(".");
+
     // If no extension or extension is too long, just truncate normally
     if (lastDotIndex === -1 || fileName.length - lastDotIndex > 10) {
-        return fileName.substring(0, maxLength - 3) + '...';
+        return fileName.substring(0, maxLength - 3) + "...";
     }
 
     const extension = fileName.substring(lastDotIndex);
     const nameWithoutExt = fileName.substring(0, lastDotIndex);
-    
+
     // Calculate how much space we have for the name part
     const availableSpace = maxLength - extension.length - 3; // 3 for "..."
-    
+
     if (availableSpace <= 0) {
-        return fileName.substring(0, maxLength - 3) + '...';
+        return fileName.substring(0, maxLength - 3) + "...";
     }
 
-    return nameWithoutExt.substring(0, availableSpace) + '... ' + extension;
+    return nameWithoutExt.substring(0, availableSpace) + "... " + extension;
+};
+
+export const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
