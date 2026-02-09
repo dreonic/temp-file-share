@@ -12,7 +12,7 @@ export default function HomePage() {
     const router = useRouter();
     const [isDragging, setIsDragging] = useState(false);
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-    const [draggedFile, setDraggedFile] = useState<File | null>(null);
+    const [draggedFiles, setDraggedFiles] = useState<File[]>([]);
     const [refreshKey, setRefreshKey] = useState(0);
 
     // Redirect unauthenticated users to landing page
@@ -50,21 +50,21 @@ export default function HomePage() {
         e.stopPropagation();
         setIsDragging(false);
 
-        const file = e.dataTransfer.files?.[0];
-        if (file) {
-            setDraggedFile(file);
+        const files = Array.from(e.dataTransfer.files || []);
+        if (files.length > 0) {
+            setDraggedFiles(files);
             setIsUploadDialogOpen(true);
         }
     }, []);
 
     const handleUploadComplete = () => {
         setRefreshKey((prev) => prev + 1);
-        setDraggedFile(null);
+        setDraggedFiles([]);
     };
 
     const handleCloseUploadDialog = () => {
         setIsUploadDialogOpen(false);
-        setDraggedFile(null);
+        setDraggedFiles([]);
     };
 
     if (loading) {
@@ -158,10 +158,10 @@ export default function HomePage() {
                                 </div>
                             </div>
                             <p className="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
-                                Drop your file here
+                                Drop your files here
                             </p>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Release to upload
+                                Release to upload (multiple files supported)
                             </p>
                         </div>
                     </div>
@@ -172,7 +172,7 @@ export default function HomePage() {
                 isOpen={isUploadDialogOpen}
                 onClose={handleCloseUploadDialog}
                 onUploadComplete={handleUploadComplete}
-                initialFile={draggedFile}
+                initialFiles={draggedFiles}
             />
         </div>
     );

@@ -9,7 +9,15 @@ interface UploadDialogProps {
     onClose?: () => void;
     onUploadComplete?: () => void;
     onQuotaUpdate?: (predictedTotal: number, maxQuota: number) => void;
-    initialFile?: File | null;
+    initialFiles?: File[];
+}
+
+interface FileUploadStatus {
+    file: File;
+    progress: number;
+    status: "pending" | "uploading" | "success" | "error";
+    shortUrl?: string;
+    error?: string;
 }
 
 export default function UploadDialog({
@@ -17,23 +25,37 @@ export default function UploadDialog({
     onClose,
     onUploadComplete,
     onQuotaUpdate,
-    initialFile,
+    initialFiles,
 }: UploadDialogProps) {
     const { accessToken } = useAuth();
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const [fileStatuses, setFileStatuses] = useState<
+        Map<string, FileUploadStatus>
+    >(new Map());
     const [uploading, setUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
-    const [error, setError] = useState<string | null>(null);
+    const [overallProgress, setOverallProgress] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
-    const [shortUrl, setShortUrl] = useState<string | null>(null);
     const [showSuccess, setShowSuccess] = useState(false);
 
-    // Set initial file when provided
+    const getFileId = (file: File) =>
+        `${file.name}-${file.size}-${file.lastModified}`;
+
+    // Set initial files when provided
     useEffect(() => {
-        if (initialFile) {
-            setSelectedFile(initialFile);
+        if (initialFiles && initialFiles.length > 0) {
+            setSelectedFiles(initialFiles);
+            const newStatuses = new Map<string, FileUploadStatus>();
+            initialFiles.forEach((file) => {
+                const fileId = getFileId(file);
+                newStatuses.set(fileId, {
+                    file,
+                    progress: 0,
+                    status: "pending",
+                });
+            });
+            setFileStatuses(newStatuses);
         }
-    }, [initialFile]);
+    }, [initialFiles]);
 
     // Auto-hide success message after 1 second and close dialog
     useEffect(() => {
@@ -49,13 +71,29 @@ export default function UploadDialog({
     }, [showSuccess]);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setSelectedFile(file);
-            setError(null);
-            setShortUrl(null);
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) {
+            setSelectedFiles(files);
+            const newStatuses = new Map<string, FileUploadStatus>();
+            files.forEach((file) => {
+                newStatuses.set(getFileId(file), {
+                    file,
+                    progress: 0,
+                    status: "pending",
+                });
+            });
+            setFileStatuses(newStatuses);
             setShowSuccess(false);
         }
+    };
+
+    const removeFile = (fileId: string) => {
+        setSelectedFiles((prev) => prev.filter((f) => getFileId(f) !== fileId));
+        setFileStatuses((prev) => {
+            const newMap = new Map(prev);
+            newMap.delete(fileId);
+            return newMap;
+        });
     };
 
     const handleDragEnter = (e: React.DragEvent) => {
@@ -80,33 +118,52 @@ export default function UploadDialog({
         e.stopPropagation();
         setIsDragging(false);
 
-        const file = e.dataTransfer.files?.[0];
-        if (file) {
-            setSelectedFile(file);
-            setError(null);
-            setShortUrl(null);
+        const files = Array.from(e.dataTransfer.files || []);
+        if (files.length > 0) {
+            setSelectedFiles(files);
+            const newStatuses = new Map<string, FileUploadStatus>();
+            files.forEach((file) => {
+                newStatuses.set(getFileId(file), {
+                    file,
+                    progress: 0,
+                    status: "pending",
+                });
+            });
+            setFileStatuses(newStatuses);
             setShowSuccess(false);
         }
     };
 
-    const handleUpload = useCallback(async () => {
-        if (!selectedFile || !accessToken) return;
-
-        setUploading(true);
-        setError(null);
-        setUploadProgress(0);
-        setShortUrl(null);
-        setShowSuccess(false);
+    const uploadSingleFile = async (
+        file: File,
+        accumulatedQuota: {
+            predictedTotal: number | null;
+            maxQuota: number | null;
+        },
+    ): Promise<void> => {
+        const fileId = getFileId(file);
 
         try {
-            // Step 1: Get presigned URL + short link from Lambda directly
-            setUploadProgress(10);
-            const lambdaUrl = process.env.NEXT_PUBLIC_DATA_AUTH_LAMBDA_URL;
+            // Update status to uploading
+            setFileStatuses((prev) => {
+                const newMap = new Map(prev);
+                const status = newMap.get(fileId);
+                if (status) {
+                    newMap.set(fileId, {
+                        ...status,
+                        status: "uploading",
+                        progress: 10,
+                    });
+                }
+                return newMap;
+            });
 
+            const lambdaUrl = process.env.NEXT_PUBLIC_DATA_AUTH_LAMBDA_URL;
             if (!lambdaUrl) {
                 throw new Error("Lambda URL not configured");
             }
 
+            // Get presigned URL
             const urlResponse = await fetch(lambdaUrl, {
                 method: "POST",
                 headers: {
@@ -114,10 +171,9 @@ export default function UploadDialog({
                     Authorization: `Bearer ${accessToken}`,
                 },
                 body: JSON.stringify({
-                    fileName: selectedFile.name,
-                    contentType:
-                        selectedFile.type || "application/octet-stream",
-                    fileSize: selectedFile.size || 0,
+                    fileName: file.name,
+                    contentType: file.type || "application/octet-stream",
+                    fileSize: file.size || 0,
                 }),
             });
 
@@ -135,29 +191,34 @@ export default function UploadDialog({
                 maxSizePerMonth,
             } = responseData;
 
-            // Save short URL immediately
-            setShortUrl(generatedShortUrl);
-            setUploadProgress(20);
+            // Update progress
+            setFileStatuses((prev) => {
+                const newMap = new Map(prev);
+                const status = newMap.get(fileId);
+                if (status) {
+                    newMap.set(fileId, {
+                        ...status,
+                        progress: 30,
+                        shortUrl: generatedShortUrl,
+                    });
+                }
+                return newMap;
+            });
 
-            // Update quota immediately with predicted values
-            if (onQuotaUpdate && predictedTotalSize && maxSizePerMonth) {
-                onQuotaUpdate(predictedTotalSize, maxSizePerMonth);
+            // Accumulate quota info (will update at the end)
+            if (predictedTotalSize && maxSizePerMonth) {
+                accumulatedQuota.predictedTotal = predictedTotalSize;
+                accumulatedQuota.maxQuota = maxSizePerMonth;
             }
 
-            // Step 2: Upload to S3 using presigned POST
+            // Upload to S3
             const formData = new FormData();
-
-            // Add all fields from the presigned POST
             if (uploadFields) {
                 Object.entries(uploadFields).forEach(([key, value]) => {
                     formData.append(key, value as string);
                 });
             }
-
-            // Add the file last (important for S3)
-            formData.append("file", selectedFile);
-
-            setUploadProgress(30);
+            formData.append("file", file);
 
             const uploadResponse = await fetch(uploadUrl, {
                 method: "POST",
@@ -170,35 +231,132 @@ export default function UploadDialog({
                 );
             }
 
-            setUploadProgress(100);
-
-            // Copy short URL to clipboard
-            if (generatedShortUrl) {
-                try {
-                    await navigator.clipboard.writeText(generatedShortUrl);
-                } catch (clipboardErr) {
-                    console.warn("Failed to copy to clipboard:", clipboardErr);
+            // Mark as success
+            setFileStatuses((prev) => {
+                const newMap = new Map(prev);
+                const status = newMap.get(fileId);
+                if (status) {
+                    newMap.set(fileId, {
+                        ...status,
+                        status: "success",
+                        progress: 100,
+                    });
                 }
+                return newMap;
+            });
+        } catch (err) {
+            console.error(`Upload error for ${file.name}:`, err);
+            setFileStatuses((prev) => {
+                const newMap = new Map(prev);
+                const status = newMap.get(fileId);
+                if (status) {
+                    newMap.set(fileId, {
+                        ...status,
+                        status: "error",
+                        error:
+                            err instanceof Error
+                                ? err.message
+                                : "Failed to upload file",
+                    });
+                }
+                return newMap;
+            });
+        }
+    };
+
+    const handleUpload = useCallback(async () => {
+        if (selectedFiles.length === 0 || !accessToken) return;
+
+        setUploading(true);
+        setOverallProgress(0);
+        setShowSuccess(false);
+
+        const CONCURRENT_UPLOADS = 3;
+        const chunks: File[][] = [];
+
+        // Split files into chunks for concurrent upload
+        for (let i = 0; i < selectedFiles.length; i += CONCURRENT_UPLOADS) {
+            chunks.push(selectedFiles.slice(i, i + CONCURRENT_UPLOADS));
+        }
+
+        try {
+            let completedFiles = 0;
+            const totalFiles = selectedFiles.length;
+            const accumulatedQuota = {
+                predictedTotal: null as number | null,
+                maxQuota: null as number | null,
+            };
+
+            // Upload chunks sequentially, but files within chunks in parallel
+            for (const chunk of chunks) {
+                await Promise.allSettled(
+                    chunk.map((file) =>
+                        uploadSingleFile(file, accumulatedQuota),
+                    ),
+                );
+                completedFiles += chunk.length;
+                setOverallProgress(
+                    Math.round((completedFiles / totalFiles) * 100),
+                );
             }
 
-            setSelectedFile(null);
-            setShowSuccess(true);
+            // Update quota once at the end with the final accumulated values
+            if (
+                onQuotaUpdate &&
+                accumulatedQuota.predictedTotal &&
+                accumulatedQuota.maxQuota
+            ) {
+                onQuotaUpdate(
+                    accumulatedQuota.predictedTotal,
+                    accumulatedQuota.maxQuota,
+                );
+            }
+
+            // Wait for state to settle before checking success
+            // Use a small delay to ensure all setState calls have completed
+            await new Promise((resolve) => setTimeout(resolve, 100));
+
+            // Check if all uploads succeeded by rechecking the current state
+            setFileStatuses((currentStatuses) => {
+                const allSuccessful = Array.from(
+                    currentStatuses.values(),
+                ).every((status) => status.status === "success");
+
+                if (allSuccessful) {
+                    // Copy all short URLs to clipboard
+                    const urls = Array.from(currentStatuses.values())
+                        .map((status) => status.shortUrl)
+                        .filter(Boolean)
+                        .join("\n");
+
+                    if (urls) {
+                        navigator.clipboard
+                            .writeText(urls)
+                            .catch((clipboardErr) => {
+                                console.warn(
+                                    "Failed to copy to clipboard:",
+                                    clipboardErr,
+                                );
+                            });
+                    }
+
+                    setShowSuccess(true);
+                }
+
+                return currentStatuses;
+            });
         } catch (err) {
-            console.error("Upload error:", err);
-            setError(
-                err instanceof Error ? err.message : "Failed to upload file",
-            );
+            console.error("Batch upload error:", err);
         } finally {
             setUploading(false);
         }
-    }, [selectedFile, accessToken]);
+    }, [selectedFiles, accessToken, fileStatuses, onQuotaUpdate]);
 
     const handleClose = () => {
         if (!uploading && !showSuccess) {
-            setSelectedFile(null);
-            setError(null);
-            setUploadProgress(0);
-            setShortUrl(null);
+            setSelectedFiles([]);
+            setFileStatuses(new Map());
+            setOverallProgress(0);
             setShowSuccess(false);
             onClose?.();
         }
@@ -211,7 +369,13 @@ export default function UploadDialog({
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-lg w-full mx-4">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                        Upload File
+                        Upload File{selectedFiles.length > 1 ? "s" : ""}
+                        {selectedFiles.length > 0 && (
+                            <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                                ({selectedFiles.length} file
+                                {selectedFiles.length > 1 ? "s" : ""})
+                            </span>
+                        )}
                     </h3>
                     <button
                         onClick={handleClose}
@@ -251,6 +415,7 @@ export default function UploadDialog({
                         {!showSuccess && (
                             <input
                                 type="file"
+                                multiple
                                 onChange={handleFileSelect}
                                 disabled={uploading}
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
@@ -267,6 +432,11 @@ export default function UploadDialog({
                                 />
                                 <p className="text-2xl font-bold text-green-700 dark:text-green-400">
                                     Upload Successful!
+                                </p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                                    {selectedFiles.length} file
+                                    {selectedFiles.length > 1 ? "s" : ""}{" "}
+                                    uploaded
                                 </p>
                             </div>
                         ) : (
@@ -324,55 +494,191 @@ export default function UploadDialog({
                                 </div>
                                 <p className="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
                                     {isDragging
-                                        ? "Drop your file here"
-                                        : "Drop your file here"}
+                                        ? "Drop your files here"
+                                        : "Drop your files here"}
                                 </p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    or click to browse
+                                    or click to browse (multiple files
+                                    supported)
                                 </p>
                             </div>
                         )}
                     </div>
 
-                    {/* Selected File Info */}
-                    {selectedFile && (
-                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                            <p
-                                className="text-sm text-gray-700 dark:text-gray-300 break-all"
-                                title={selectedFile.name}
-                            >
-                                <span className="font-medium">File:</span>{" "}
-                                {selectedFile.name}
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                                <span className="font-medium">Size:</span>{" "}
-                                {(selectedFile.size / 1024 / 1024).toFixed(2)}{" "}
-                                MB
-                            </p>
+                    {/* Selected Files List */}
+                    {selectedFiles.length > 0 && !uploading && !showSuccess && (
+                        <div className="max-h-60 overflow-y-auto space-y-2">
+                            {selectedFiles.map((file) => {
+                                const fileId = getFileId(file);
+                                return (
+                                    <div
+                                        key={fileId}
+                                        className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex items-center justify-between"
+                                    >
+                                        <div className="flex-1 min-w-0">
+                                            <p
+                                                className="text-sm text-gray-700 dark:text-gray-300 truncate"
+                                                title={file.name}
+                                            >
+                                                {file.name}
+                                            </p>
+                                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                                                {(
+                                                    file.size /
+                                                    1024 /
+                                                    1024
+                                                ).toFixed(2)}{" "}
+                                                MB
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => removeFile(fileId)}
+                                            className="ml-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                                        >
+                                            <svg
+                                                className="w-5 h-5"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M6 18L18 6M6 6l12 12"
+                                                />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
 
-                    {/* Upload Progress */}
+                    {/* Upload Progress for Individual Files */}
                     {uploading && (
-                        <div className="space-y-2">
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                                <div
-                                    className="bg-blue-500 h-2.5 rounded-full transition-all duration-300"
-                                    style={{ width: `${uploadProgress}%` }}
-                                ></div>
+                        <div className="space-y-3">
+                            {/* Overall Progress */}
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-700 dark:text-gray-300 font-medium">
+                                        Overall Progress
+                                    </span>
+                                    <span className="text-gray-600 dark:text-gray-400">
+                                        {overallProgress}%
+                                    </span>
+                                </div>
+                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                                    <div
+                                        className="bg-blue-500 h-2.5 rounded-full transition-all duration-300"
+                                        style={{ width: `${overallProgress}%` }}
+                                    ></div>
+                                </div>
                             </div>
-                            <p className="text-sm text-center text-gray-600 dark:text-gray-400">
-                                Uploading... {uploadProgress}%
-                            </p>
+
+                            {/* Individual File Progress */}
+                            <div className="max-h-60 overflow-y-auto space-y-2">
+                                {Array.from(fileStatuses.entries()).map(
+                                    ([fileId, status]) => (
+                                        <div
+                                            key={fileId}
+                                            className={`border rounded-lg p-3 ${
+                                                status.status === "success"
+                                                    ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                                                    : status.status === "error"
+                                                      ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+                                                      : "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700"
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between mb-2">
+                                                <p
+                                                    className="text-sm text-gray-700 dark:text-gray-300 truncate flex-1"
+                                                    title={status.file.name}
+                                                >
+                                                    {status.file.name}
+                                                </p>
+                                                <div className="ml-2">
+                                                    {status.status ===
+                                                        "success" && (
+                                                        <svg
+                                                            className="w-5 h-5 text-green-600 dark:text-green-400"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M5 13l4 4L19 7"
+                                                            />
+                                                        </svg>
+                                                    )}
+                                                    {status.status ===
+                                                        "error" && (
+                                                        <svg
+                                                            className="w-5 h-5 text-red-600 dark:text-red-400"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M6 18L18 6M6 6l12 12"
+                                                            />
+                                                        </svg>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {status.status === "uploading" && (
+                                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                                                    <div
+                                                        className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
+                                                        style={{
+                                                            width: `${status.progress}%`,
+                                                        }}
+                                                    ></div>
+                                                </div>
+                                            )}
+                                            {status.error && (
+                                                <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                                                    {status.error}
+                                                </p>
+                                            )}
+                                            {status.shortUrl && (
+                                                <p
+                                                    className="text-xs text-blue-600 dark:text-blue-400 mt-1 truncate"
+                                                    title={status.shortUrl}
+                                                >
+                                                    {status.shortUrl}
+                                                </p>
+                                            )}
+                                        </div>
+                                    ),
+                                )}
+                            </div>
                         </div>
                     )}
 
-                    {/* Error Message */}
-                    {error && (
-                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                            <p className="text-sm text-red-700 dark:text-red-400">
-                                {error}
+                    {/* Success URLs Display */}
+                    {showSuccess && (
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 max-h-40 overflow-y-auto">
+                            <p className="text-sm font-medium text-green-700 dark:text-green-400 mb-2">
+                                Short URLs (copied to clipboard):
                             </p>
+                            {Array.from(fileStatuses.values()).map(
+                                (status, idx) =>
+                                    status.shortUrl && (
+                                        <p
+                                            key={idx}
+                                            className="text-xs text-green-600 dark:text-green-400 font-mono break-all"
+                                        >
+                                            {status.shortUrl}
+                                        </p>
+                                    ),
+                            )}
                         </div>
                     )}
 
@@ -389,12 +695,14 @@ export default function UploadDialog({
                         </button>
                         <button
                             onClick={handleUpload}
-                            disabled={!selectedFile || uploading}
+                            disabled={selectedFiles.length === 0 || uploading}
                             className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg 
                                      hover:bg-blue-600 transition-colors
                                      disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {uploading ? "Uploading..." : "Upload"}
+                            {uploading
+                                ? "Uploading..."
+                                : `Upload ${selectedFiles.length > 0 ? `(${selectedFiles.length})` : ""}`}
                         </button>
                     </div>
                 </div>
