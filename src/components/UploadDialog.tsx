@@ -646,14 +646,6 @@ export default function UploadDialog({
                                                     {status.error}
                                                 </p>
                                             )}
-                                            {status.shortUrl && (
-                                                <p
-                                                    className="text-xs text-blue-600 dark:text-blue-400 mt-1 truncate"
-                                                    title={status.shortUrl}
-                                                >
-                                                    {status.shortUrl}
-                                                </p>
-                                            )}
                                         </div>
                                     ),
                                 )}
@@ -664,20 +656,10 @@ export default function UploadDialog({
                     {/* Success URLs Display */}
                     {showSuccess && (
                         <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 max-h-40 overflow-y-auto">
-                            <p className="text-sm font-medium text-green-700 dark:text-green-400 mb-2">
-                                Short URLs (copied to clipboard):
+                            <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                                Successfully uploaded {selectedFiles.length}{" "}
+                                Files
                             </p>
-                            {Array.from(fileStatuses.values()).map(
-                                (status, idx) =>
-                                    status.shortUrl && (
-                                        <p
-                                            key={idx}
-                                            className="text-xs text-green-600 dark:text-green-400 font-mono break-all"
-                                        >
-                                            {status.shortUrl}
-                                        </p>
-                                    ),
-                            )}
                         </div>
                     )}
 

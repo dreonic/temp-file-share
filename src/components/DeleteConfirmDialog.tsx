@@ -34,9 +34,10 @@ export default function DeleteConfirmDialog({
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you sure to delete?</AlertDialogTitle>
-                    <AlertDialogDescription className="break-all">
-                        This will permanently delete <strong>{fileName}</strong> and its
-                        short link. This action cannot be undone.
+                    <AlertDialogDescription>
+                        This will permanently delete{" "}
+                        <strong className="break-all">{fileName}</strong> and
+                        its short link. This action cannot be undone.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
